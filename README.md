@@ -196,47 +196,55 @@ function dragElement(elmnt) {
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Suporte | FIVEM STORE</title>
-
 <style>
-body { font-family: Arial, sans-serif; padding: 20px; background:#f0f0f0; }
-.container { max-width:600px; margin:0 auto; background:white; padding:20px; border-radius:15px; box-shadow:0 0 10px rgba(0,0,0,0.1); }
-input, textarea { width:100%; padding:10px; margin-top:10px; border-radius:10px; outline:none; border:1px solid #ccc; }
-button { margin-top:15px; padding:12px 20px; border:none; border-radius:10px; background:#ff4c4c; color:white; font-size:1.1rem; cursor:pointer; font-weight:700; }
-button:hover {opacity:0.8;}
-.msg {background:#222;color:white;padding:10px;border-radius:10px;margin-top:10px;}
-.reply {background:#003b15;color:white;padding:10px;border-radius:10px;margin-top:10px;}
-.ticket {border:1px solid #ccc; padding:10px; margin-top:10px; border-radius:10px; background:#f9f9f9;}
+body { font-family: Arial, sans-serif; padding: 20px; }
+nav { margin-bottom: 20px; }
+nav button { padding: 10px 20px; border:none; border-radius:5px; cursor:pointer; background:#ff4c4c; color:white; font-weight:700; }
+nav button:hover { opacity:0.8; }
+#formTicket { display:none; }
+input, textarea { width:100%; padding:10px; margin-top:10px; border-radius:5px; outline:none; border:1px solid #ccc; }
+button#enviar { margin-top:15px; padding:10px 20px; border:none; border-radius:5px; background:#ff4c4c; color:white; font-weight:700; cursor:pointer; }
+button#enviar:hover { opacity:0.8; }
+.ticket { margin-top:10px; padding:10px; border:1px solid #ccc; border-radius:5px; }
 </style>
 </head>
 <body>
-<div class="container">
-  <h1>SUPORTE</h1>
 
-  <div class="ticket-box">
-    <h2>Abrir Novo Ticket</h2>
-    <input type="text" id="nome" placeholder="Seu nome">
-    <textarea id="mensagem" placeholder="Escreva seu problema..." rows="3"></textarea>
-    <button onclick="abrirTicket()">Enviar Ticket</button>
-  </div>
+<h1>Suporte</h1>
 
-  <h2>Meus Tickets</h2>
-  <div id="list"></div>
+<nav>
+  <button onclick="mostrarForm()">Abrir Ticket</button>
+</nav>
+
+<div id="formTicket">
+  <input type="text" id="nome" placeholder="Seu nome">
+  <textarea id="mensagem" placeholder="Escreva seu problema..." rows="3"></textarea>
+  <button id="enviar" onclick="abrirTicket()">Enviar Ticket</button>
 </div>
 
+<h2>Meus Tickets</h2>
+<div id="list"></div>
+
 <script>
+function mostrarForm() {
+  document.getElementById('formTicket').style.display = 'block';
+}
+
+// Carregar tickets
 function carregarTickets() {
   let tickets = JSON.parse(localStorage.getItem("tickets") || "[]");
   let html = "";
   tickets.forEach(t=>{
     html += `<div class="ticket">
-        <h3>Ticket #${t.id}</h3>
-        <div class="msg"><strong>${t.nome}:</strong> ${t.mensagem}</div>
-        ${t.resposta ? `<div class="reply"><strong>Admin:</strong> ${t.resposta}</div>` : ""}
+        <strong>Ticket #${t.id} - ${t.nome}</strong><br>
+        ${t.mensagem}<br>
+        ${t.resposta ? "<em>Admin: "+t.resposta+"</em>" : ""}
       </div>`;
   });
   document.getElementById("list").innerHTML = html;
 }
 
+// Abrir ticket
 function abrirTicket() {
   let nome = document.getElementById("nome").value.trim();
   let mensagem = document.getElementById("mensagem").value.trim();
@@ -247,25 +255,22 @@ function abrirTicket() {
   }
 
   let tickets = JSON.parse(localStorage.getItem("tickets") || "[]");
-
-  // Gerar ID único simples
   let id = tickets.length > 0 ? tickets[tickets.length-1].id + 1 : 1;
 
   tickets.push({ id, nome, mensagem, resposta: "" });
   localStorage.setItem("tickets", JSON.stringify(tickets));
 
   alert("Ticket enviado com sucesso!");
-  
-  // Limpar campos
   document.getElementById("nome").value = "";
   document.getElementById("mensagem").value = "";
 
   carregarTickets();
 }
 
-// Carrega tickets ao abrir a página
 carregarTickets();
 </script>
+
 </body>
 </html>
+
 
