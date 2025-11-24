@@ -1,49 +1,3 @@
-const express = require('express');
-const bodyParser = require('body-parser');
-const app = express();
-app.use(express.static('public'));
-app.use(bodyParser.json());
-
-const STAFF_EMAIL = 'srleal018@gmail.com';
-let tickets = [];
-
-app.post('/login', (req, res) => {
-  const { email } = req.body;
-  const isStaff = email === STAFF_EMAIL;
-  res.json({ email, isStaff });
-});
-
-app.post('/ticket/create', (req, res) => {
-  const { email, message } = req.body;
-  const ticket = {
-    id: tickets.length + 1,
-    email,
-    message,
-    status: 'aberto',
-    avaliacao: null
-  };
-  tickets.push(ticket);
-  res.json(ticket);
-});
-
-app.post('/ticket/status', (req, res) => {
-  const { id, status } = req.body;
-  const ticket = tickets.find(t => t.id === id);
-  if (!ticket) return res.status(404).json({ error: 'Ticket não encontrado' });
-  ticket.status = status;
-  res.json(ticket);
-});
-
-app.post('/ticket/avaliar', (req, res) => {
-  const { id, avaliacao } = req.body;
-  const ticket = tickets.find(t => t.id === id);
-  if (!ticket) return res.status(404).json({ error: 'Ticket não encontrado' });
-  ticket.avaliacao = avaliacao;
-  // Aqui você pode enviar avaliação para outra rota ou armazenar em banco
-  res.json({ success: true, ticket });
-});
-
-app.listen(3000, () => console.log('Servidor rodando na porta 3000'));
 
 <html lang="pt-BR">
 <head>
@@ -161,6 +115,53 @@ function avaliarTicket(id) {
     if(idx > -1) tickets[idx] = resp.ticket;
     carregarTickets();
     alert('Avaliação enviada com sucesso!');
+ const express = require('express');
+const bodyParser = require('body-parser');
+const app = express();
+app.use(express.static('public'));
+app.use(bodyParser.json());
+
+const STAFF_EMAIL = 'srleal018@gmail.com';
+let tickets = [];
+
+app.post('/login', (req, res) => {
+  const { email } = req.body;
+  const isStaff = email === STAFF_EMAIL;
+  res.json({ email, isStaff });
+});
+
+app.post('/ticket/create', (req, res) => {
+  const { email, message } = req.body;
+  const ticket = {
+    id: tickets.length + 1,
+    email,
+    message,
+    status: 'aberto',
+    avaliacao: null
+  };
+  tickets.push(ticket);
+  res.json(ticket);
+});
+
+app.post('/ticket/status', (req, res) => {
+  const { id, status } = req.body;
+  const ticket = tickets.find(t => t.id === id);
+  if (!ticket) return res.status(404).json({ error: 'Ticket não encontrado' });
+  ticket.status = status;
+  res.json(ticket);
+});
+
+app.post('/ticket/avaliar', (req, res) => {
+  const { id, avaliacao } = req.body;
+  const ticket = tickets.find(t => t.id === id);
+  if (!ticket) return res.status(404).json({ error: 'Ticket não encontrado' });
+  ticket.avaliacao = avaliacao;
+  // Aqui você pode enviar avaliação para outra rota ou armazenar em banco
+  res.json({ success: true, ticket });
+});
+
+app.listen(3000, () => console.log('Servidor rodando na porta 3000'));
+
   });
 }
 </script>
