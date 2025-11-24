@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8" />
@@ -190,62 +190,7 @@ function dragElement(elmnt) {
 
 </body>
 
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Suporte | FIVEM STORE</title>
 
-<style>
-
-
-</style>
-</head>
-<body>
-<div class="container">
-  <h1>SUPORTE</h1>
-  <div class="ticket-box">
-    <h2>Abrir Novo Ticket</h2>
-    <input type="text" id="nome" placeholder="Seu nome">
-    <textarea id="mensagem" placeholder="Escreva seu problema..." rows="3"></textarea>
-    <button onclick="abrirTicket()">Enviar Ticket</button>
-  </div>
-
-  <h2>Meus Tickets</h2>
-  <div id="list"></div>
-</div>
-
-<script>
-function carregarTickets() {
-  let tickets = JSON.parse(localStorage.getItem("tickets") || "[]");
-  let html = "";
-  tickets.forEach(t=>{
-    html += `<div class="ticket">
-        <h3>Ticket #${t.id}</h3>
-        <div class="msg">Você: ${t.mensagem}</div>
-        ${t.resposta ? `<div class="reply">Admin: ${t.resposta}</div>` : ""}
-      </div>`;
-  });
-  document.getElementById("list").innerHTML = html;
-}
-
-function abrirTicket() {
-  let nome = document.getElementById("nome").value;
-  let mensagem = document.getElementById("mensagem").value;
-  if(!nome || !mensagem) return alert("Preencha todos os campos!");
-  let tickets = JSON.parse(localStorage.getItem("tickets") || "[]");
-  let id = Math.floor(Math.random()*999999);
-  tickets.push({ id, nome, mensagem, resposta: "" });
-  localStorage.setItem("tickets", JSON.stringify(tickets));
-  alert("Ticket enviado com sucesso!");
-  carregarTickets();
-}
-
-carregarTickets();
-</script>
-</body>
-</html>
 
 
 
