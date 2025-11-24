@@ -194,52 +194,75 @@ function dragElement(elmnt) {
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Suporte | FIVEM STORE</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel de Tickets</title>
 <style>
 body { font-family: Arial, sans-serif; padding: 20px; }
+h1, h2 { margin-bottom: 10px; }
 nav { margin-bottom: 20px; }
-nav button { padding: 10px 20px; border:none; border-radius:5px; cursor:pointer; background:#ff4c4c; color:white; font-weight:700; }
-nav button:hover { opacity:0.8; }
-#formTicket { display:none; }
-input, textarea { width:100%; padding:10px; margin-top:10px; border-radius:5px; outline:none; border:1px solid #ccc; }
-button#enviar { margin-top:15px; padding:10px 20px; border:none; border-radius:5px; background:#ff4c4c; color:white; font-weight:700; cursor:pointer; }
-button#enviar:hover { opacity:0.8; }
-.ticket { margin-top:10px; padding:10px; border:1px solid #ccc; border-radius:5px; }
+nav button { padding: 10px 15px; margin-right: 10px; border: none; border-radius: 5px; background: #ff4c4c; color: white; cursor: pointer; font-weight: 700; }
+nav button:hover { opacity: 0.8; }
+#formTicket, #responderTicket { display: none; margin-bottom: 20px; }
+input, textarea { width: 100%; padding: 10px; margin-top: 10px; border-radius: 5px; border: 1px solid #ccc; outline: none; }
+button { padding: 10px 20px; border: none; border-radius: 5px; background: #ff4c4c; color: white; cursor: pointer; font-weight: 700; margin-top: 10px; }
+button:hover { opacity: 0.8; }
+.ticket { border: 1px solid #ccc; border-radius: 5px; padding: 10px; margin-top: 10px; }
+.ticket h3 { margin: 0 0 5px 0; }
+.ticket .msg, .ticket .reply { margin-top: 5px; padding: 5px; border-radius: 5px; border: 1px solid #ccc; }
+.ticket .reply { font-style: italic; }
 </style>
 </head>
 <body>
 
-<h1>Suporte</h1>
+<h1>Painel de Tickets</h1>
 
 <nav>
-  <button onclick="mostrarForm()">Abrir Ticket</button>
+  <button onclick="mostrarFormTicket()">Abrir Ticket</button>
+  <button onclick="mostrarTickets()">Ver Tickets</button>
 </nav>
 
 <div id="formTicket">
+  <h2>Abrir Novo Ticket</h2>
   <input type="text" id="nome" placeholder="Seu nome">
   <textarea id="mensagem" placeholder="Escreva seu problema..." rows="3"></textarea>
-  <button id="enviar" onclick="abrirTicket()">Enviar Ticket</button>
+  <button onclick="abrirTicket()">Enviar Ticket</button>
 </div>
 
-<h2>Meus Tickets</h2>
+<div id="responderTicket">
+  <h2>Responder Ticket</h2>
+  <input type="number" id="responderId" placeholder="ID do Ticket">
+  <textarea id="resposta" placeholder="Digite a resposta..." rows="3"></textarea>
+  <button onclick="responderTicket()">Enviar Resposta</button>
+</div>
+
+<h2>Tickets</h2>
 <div id="list"></div>
 
 <script>
-function mostrarForm() {
+// Funções para mostrar formulários
+function mostrarFormTicket() {
   document.getElementById('formTicket').style.display = 'block';
+  document.getElementById('responderTicket').style.display = 'none';
+}
+function mostrarResponderTicket() {
+  document.getElementById('responderTicket').style.display = 'block';
+  document.getElementById('formTicket').style.display = 'none';
+}
+function mostrarTickets() {
+  document.getElementById('formTicket').style.display = 'none';
+  document.getElementById('responderTicket').style.display = 'none';
 }
 
 // Carregar tickets
 function carregarTickets() {
   let tickets = JSON.parse(localStorage.getItem("tickets") || "[]");
   let html = "";
-  tickets.forEach(t=>{
+  tickets.forEach(t => {
     html += `<div class="ticket">
-        <strong>Ticket #${t.id} - ${t.nome}</strong><br>
-        ${t.mensagem}<br>
-        ${t.resposta ? "<em>Admin: "+t.resposta+"</em>" : ""}
-      </div>`;
+      <h3>Ticket #${t.id} - ${t.nome}</h3>
+      <div class="msg"><strong>Mensagem:</strong> ${t.mensagem}</div>
+      ${t.resposta ? `<div class="reply"><strong>Resposta:</strong> ${t.resposta}</div>` : ""}
+    </div>`;
   });
   document.getElementById("list").innerHTML = html;
 }
@@ -248,29 +271,43 @@ function carregarTickets() {
 function abrirTicket() {
   let nome = document.getElementById("nome").value.trim();
   let mensagem = document.getElementById("mensagem").value.trim();
-
-  if(!nome || !mensagem) {
-    alert("Preencha todos os campos!");
-    return;
-  }
+  if (!nome || !mensagem) return alert("Preencha todos os campos!");
 
   let tickets = JSON.parse(localStorage.getItem("tickets") || "[]");
   let id = tickets.length > 0 ? tickets[tickets.length-1].id + 1 : 1;
 
   tickets.push({ id, nome, mensagem, resposta: "" });
   localStorage.setItem("tickets", JSON.stringify(tickets));
-
   alert("Ticket enviado com sucesso!");
   document.getElementById("nome").value = "";
   document.getElementById("mensagem").value = "";
-
   carregarTickets();
 }
 
+// Responder ticket
+function responderTicket() {
+  let id = parseInt(document.getElementById("responderId").value);
+  let resposta = document.getElementById("resposta").value.trim();
+  if (!id || !resposta) return alert("Preencha todos os campos!");
+
+  let tickets = JSON.parse(localStorage.getItem("tickets") || "[]");
+  let ticket = tickets.find(t => t.id === id);
+  if (!ticket) return alert("Ticket não encontrado!");
+
+  ticket.resposta = resposta;
+  localStorage.setItem("tickets", JSON.stringify(tickets));
+  alert("Resposta enviada com sucesso!");
+  document.getElementById("responderId").value = "";
+  document.getElementById("resposta").value = "";
+  carregarTickets();
+}
+
+// Inicializar
 carregarTickets();
 </script>
 
 </body>
 </html>
+
 
 
