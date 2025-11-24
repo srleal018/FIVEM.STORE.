@@ -193,76 +193,60 @@ function dragElement(elmnt) {
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Painel de Tickets</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Suporte | FIVEM STORE</title>
+
 <style>
-body { font-family: Arial, sans-serif; padding: 20px; }
-input, textarea { width:100%; padding:10px; margin-top:10px; border-radius:5px; border:1px solid #ccc; outline:none; }
-button { padding:10px 20px; margin-top:10px; border:none; border-radius:5px; background:#ff4c4c; color:white; cursor:pointer; font-weight:700; }
-button:hover { opacity:0.8; }
-.ticket { border:1px solid #ccc; border-radius:5px; padding:10px; margin-top:10px; }
-.ticket h3 { margin:0 0 5px 0; }
-.ticket .msg, .ticket .reply { margin-top:5px; padding:5px; border-radius:5px; border:1px solid #ccc; }
-.ticket .reply { font-style:italic; }
+
+
 </style>
 </head>
 <body>
+<div class="container">
+  <h1>SUPORTE</h1>
+  <div class="ticket-box">
+    <h2>Abrir Novo Ticket</h2>
+    <input type="text" id="nome" placeholder="Seu nome">
+    <textarea id="mensagem" placeholder="Escreva seu problema..." rows="3"></textarea>
+    <button onclick="abrirTicket()">Enviar Ticket</button>
+  </div>
 
-<h1>Painel de Tickets</h1>
-
-<div>
-  <h2>Abrir Novo Ticket</h2>
-  <input type="text" id="nome" placeholder="Seu nome">
-  <textarea id="mensagem" placeholder="Escreva seu problema..." rows="3"></textarea>
-  <button id="enviar">Enviar Ticket</button>
+  <h2>Meus Tickets</h2>
+  <div id="list"></div>
 </div>
 
-<h2>Tickets</h2>
-<div id="list"></div>
-
 <script>
-const list = document.getElementById("list");
-const enviar = document.getElementById("enviar");
-
 function carregarTickets() {
   let tickets = JSON.parse(localStorage.getItem("tickets") || "[]");
-  list.innerHTML = "";
-  tickets.forEach(t => {
-    const div = document.createElement("div");
-    div.className = "ticket";
-    div.innerHTML = `
-      <h3>Ticket #${t.id} - ${t.nome}</h3>
-      <div class="msg"><strong>Mensagem:</strong> ${t.mensagem}</div>
-      ${t.resposta ? `<div class="reply"><strong>Resposta:</strong> ${t.resposta}</div>` : ""}
-    `;
-    list.appendChild(div);
+  let html = "";
+  tickets.forEach(t=>{
+    html += `<div class="ticket">
+        <h3>Ticket #${t.id}</h3>
+        <div class="msg">Você: ${t.mensagem}</div>
+        ${t.resposta ? `<div class="reply">Admin: ${t.resposta}</div>` : ""}
+      </div>`;
   });
+  document.getElementById("list").innerHTML = html;
 }
 
-// Abrir ticket
-enviar.addEventListener("click", () => {
-  let nome = document.getElementById("nome").value.trim();
-  let mensagem = document.getElementById("mensagem").value.trim();
-  if(!nome || !mensagem) { alert("Preencha todos os campos!"); return; }
-
+function abrirTicket() {
+  let nome = document.getElementById("nome").value;
+  let mensagem = document.getElementById("mensagem").value;
+  if(!nome || !mensagem) return alert("Preencha todos os campos!");
   let tickets = JSON.parse(localStorage.getItem("tickets") || "[]");
-  let id = tickets.length > 0 ? tickets[tickets.length-1].id + 1 : 1;
-
+  let id = Math.floor(Math.random()*999999);
   tickets.push({ id, nome, mensagem, resposta: "" });
   localStorage.setItem("tickets", JSON.stringify(tickets));
-
-  document.getElementById("nome").value = "";
-  document.getElementById("mensagem").value = "";
+  alert("Ticket enviado com sucesso!");
   carregarTickets();
-});
+}
 
-// Inicializar
 carregarTickets();
 </script>
-
 </body>
 </html>
+
 
 
 
