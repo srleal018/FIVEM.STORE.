@@ -1,17 +1,71 @@
+const express = require('express');
+const bodyParser = require('body-parser');
+const app = express();
+app.use(express.static('public'));
+app.use(bodyParser.json());
 
-<html>
+const STAFF_EMAIL = 'srleal018@gmail.com';
+let tickets = [];
+
+app.post('/login', (req, res) => {
+  const { email } = req.body;
+  const isStaff = email === STAFF_EMAIL;
+  res.json({ email, isStaff });
+});
+
+app.post('/ticket/create', (req, res) => {
+  const { email, message } = req.body;
+  const ticket = {
+    id: tickets.length + 1,
+    email,
+    message,
+    status: 'aberto',
+    avaliacao: null
+  };
+  tickets.push(ticket);
+  res.json(ticket);
+});
+
+app.post('/ticket/status', (req, res) => {
+  const { id, status } = req.body;
+  const ticket = tickets.find(t => t.id === id);
+  if (!ticket) return res.status(404).json({ error: 'Ticket não encontrado' });
+  ticket.status = status;
+  res.json(ticket);
+});
+
+app.post('/ticket/avaliar', (req, res) => {
+  const { id, avaliacao } = req.body;
+  const ticket = tickets.find(t => t.id === id);
+  if (!ticket) return res.status(404).json({ error: 'Ticket não encontrado' });
+  ticket.avaliacao = avaliacao;
+  // Aqui você pode enviar avaliação para outra rota ou armazenar em banco
+  res.json({ success: true, ticket });
+});
+
+app.listen(3000, () => console.log('Servidor rodando na porta 3000'));
+
+<html lang="pt-BR">
 <head>
-  <title>Ticket de Vendas</title>
+<meta charset="UTF-8" />
+<title>Ticket Vendas Online</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 20px; }
+  #ticketArea, #ticketsList div { margin-top: 15px; padding: 10px; border: 1px solid #ccc; }
+  button { margin-right: 5px; }
+</style>
 </head>
 <body>
 
 <h2>Login por Email</h2>
-<input type="email" id="emailInput" placeholder="Digite seu email" />
-<button onclick="login()">Entrar</button>
+<form id="loginForm" onsubmit="event.preventDefault(); login();">
+  <input type="email" id="emailInput" placeholder="Digite seu email" required />
+  <button type="submit">Entrar</button>
+</form>
 
 <div id="ticketArea" style="display:none;">
   <h3>Criar Ticket</h3>
-  <textarea id="message" placeholder="Descreva seu problema ou pedido"></textarea><br>
+  <textarea id="message" placeholder="Descreva seu pedido ou problema" rows="4" cols="40"></textarea><br />
   <button onclick="criarTicket()">Abrir Ticket</button>
 
   <h3>Tickets</h3>
@@ -27,43 +81,49 @@ function login() {
   const email = document.getElementById('emailInput').value;
   fetch('/login', {
     method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({email})
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
   })
   .then(res => res.json())
   .then(data => {
     userEmail = data.email;
     isStaff = data.isStaff;
-    alert(`Logado como ${userEmail}. Staff: ${isStaff}`);
+    alert(`Bem-vindo(a), ${userEmail}. Staff: ${isStaff}`);
     document.getElementById('ticketArea').style.display = 'block';
+    tickets = [];
     carregarTickets();
-  });
+  })
+  .catch(() => alert('Erro no login.'));
 }
 
 function carregarTickets() {
-  const list = tickets.map(t => `
-    <div style="border:1px solid #000; margin:5px; padding:5px;">
+  const container = document.getElementById('ticketsList');
+  container.innerHTML = '';
+  tickets.forEach(t => {
+    const div = document.createElement('div');
+    div.innerHTML = `
       <p><b>ID:</b> ${t.id} | <b>Status:</b> ${t.status}</p>
       <p><b>Email:</b> ${t.email}</p>
       <p><b>Mensagem:</b> ${t.message}</p>
-      ${t.status === 'fechado' ? `
-        <p><b>Avaliação:</b> ${t.avaliacao || '-'} </p>
-        <button onclick="avaliarTicket(${t.id})">Avaliar</button>
-      ` : `
-        <button onclick="mudarStatus(${t.id}, 'aberto')">Abrir</button>
-        <button onclick="mudarStatus(${t.id}, 'fechado')">Fechar</button>
-      `}
-    </div>
-  `).join('');
-  document.getElementById('ticketsList').innerHTML = list;
+      ${t.status === 'fechado' ?   
+        `<p><b>Avaliação:</b> ${t.avaliacao || '-'}</p>
+         <button onclick="avaliarTicket(${t.id})">Avaliar</button>` 
+        : `
+         <button onclick="mudarStatus(${t.id}, 'aberto')">Abrir</button>
+         <button onclick="mudarStatus(${t.id}, 'fechado')">Fechar</button>`
+      }
+    `;
+    container.appendChild(div);
+  });
 }
 
 function criarTicket() {
-  const message = document.getElementById('message').value;
+  const message = document.getElementById('message').value.trim();
+  if (!message) { alert('Digite uma mensagem para o ticket.'); return; }
   fetch('/ticket/create', {
     method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({email: userEmail, message})
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: userEmail, message }),
   })
   .then(res => res.json())
   .then(ticket => {
@@ -76,39 +136,37 @@ function criarTicket() {
 function mudarStatus(id, status) {
   fetch('/ticket/status', {
     method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({id, status})
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, status }),
   })
   .then(res => res.json())
   .then(ticket => {
-    const index = tickets.findIndex(t => t.id === id);
-    if(index > -1) {
-      tickets[index] = ticket;
-      carregarTickets();
-    }
+    const idx = tickets.findIndex(t => t.id === ticket.id);
+    if(idx > -1) tickets[idx] = ticket;
+    carregarTickets();
   });
 }
 
 function avaliarTicket(id) {
-  const avaliacao = prompt('Por favor, avalie este ticket (1 a 5):');
-  if (avaliacao) {
-    fetch('/ticket/avaliar', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({id, avaliacao})
-    })
-    .then(res => res.json())
-    .then(resp => {
-      const index = tickets.findIndex(t => t.id === id);
-      if(index > -1) {
-        tickets[index] = resp.ticket;
-        carregarTickets();
-        alert('Avaliação enviada com sucesso!');
-      }
-    });
-  }
+  const avaliacao = prompt('Avalie este ticket de 1 a 5:');
+  if (!avaliacao) return;
+  fetch('/ticket/avaliar', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, avaliacao }),
+  })
+  .then(res => res.json())
+  .then(resp => {
+    const idx = tickets.findIndex(t => t.id === id);
+    if(idx > -1) tickets[idx] = resp.ticket;
+    carregarTickets();
+    alert('Avaliação enviada com sucesso!');
+  });
 }
 </script>
+
+</body>
+</html>
 
 </body>
 </html>
