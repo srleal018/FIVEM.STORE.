@@ -1,173 +1,278 @@
-
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8" />
-<title>Ticket Vendas Online</title>
+<meta charset="UTF-8">
+<title>FIVEM STORE - Suporte</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
 <style>
-  body { font-family: Arial, sans-serif; margin: 20px; }
-  #ticketArea, #ticketsList div { margin-top: 15px; padding: 10px; border: 1px solid #ccc; }
-  button { margin-right: 5px; }
+    body {
+        margin:0;
+        background:#0A0F1A;
+        color:white;
+        font-family:Arial, Helvetica, sans-serif;
+    }
+    .container {
+        max-width:1100px;
+        margin:auto;
+        padding:20px;
+    }
+    h1 {
+        margin-top:0;
+    }
+    button, input, textarea, select {
+        width:100%;
+        padding:10px;
+        border-radius:6px;
+        border:none;
+        margin-top:6px;
+    }
+    button {
+        background:#0db0d9;
+        font-weight:bold;
+        cursor:pointer;
+    }
+    .tickets {
+        background:#0d1426;
+        padding:15px;
+        border-radius:8px;
+        margin-top:15px;
+    }
+    .ticket {
+        background:#121c33;
+        padding:12px;
+        border-radius:8px;
+        margin-top:10px;
+    }
+    .reply {
+        background:#0e1b2e;
+        padding:8px;
+        border-radius:6px;
+        margin-top:6px;
+    }
+    .btnSmall {
+        background:#129ed0;
+        padding:6px;
+        font-size:14px;
+    }
 </style>
 </head>
 <body>
 
-<h2>Login por Email</h2>
-<form id="loginForm" onsubmit="event.preventDefault(); login();">
-  <input type="email" id="emailInput" placeholder="Digite seu email" required />
-  <button type="submit">Entrar</button>
-</form>
+<div class="container">
 
-<div id="ticketArea" style="display:none;">
-  <h3>Criar Ticket</h3>
-  <textarea id="message" placeholder="Descreva seu pedido ou problema" rows="4" cols="40"></textarea><br />
-  <button onclick="criarTicket()">Abrir Ticket</button>
+    <h1>📩 Sistema de Suporte</h1>
 
-  <h3>Tickets</h3>
-  <div id="ticketsList"></div>
+    <!-- LOGIN / CADASTRO -->
+    <div id="loginArea">
+        <h3>Entrar / Registrar</h3>
+        <input id="email" placeholder="Email">
+        <input id="password" type="password" placeholder="Sua senha">
+        <button onclick="login()">Entrar / Registrar</button>
+    </div>
+
+    <!-- ÁREA LOGADO -->
+    <div id="appArea" style="display:none;">
+        <div id="userInfo"></div>
+        <button onclick="logout()">Sair</button>
+        <hr>
+
+        <h3>Abrir Ticket</h3>
+        <input id="subject" placeholder="Assunto">
+        <textarea id="message" rows="4" placeholder="Descreva o problema..."></textarea>
+        <button onclick="createTicket()">Enviar Ticket</button>
+
+        <h3 style="margin-top:30px;">Tickets do Sistema</h3>
+        <div id="ticketList"></div>
+    </div>
+
 </div>
 
+
+<!-- FIREBASE -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
 <script>
-let userEmail = '';
-let isStaff = false;
-let tickets = [];
+/* ------------------------------------------------------
+   🔥 COLE AQUI SUA CONFIGURAÇÃO DO FIREBASE
+------------------------------------------------------ */
+const firebaseConfig = {
+   // SUA CONFIG DO FIREBASE AQUI
+};
+// ----------------------------------------------------
 
-function login() {
-  const email = document.getElementById('emailInput').value;
-  fetch('/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email }),
-  })
-  .then(res => res.json())
-  .then(data => {
-    userEmail = data.email;
-    isStaff = data.isStaff;
-    alert(`Bem-vindo(a), ${userEmail}. Staff: ${isStaff}`);
-    document.getElementById('ticketArea').style.display = 'block';
-    tickets = [];
-    carregarTickets();
-  })
-  .catch(() => alert('Erro no login.'));
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+let currentUser = null;
+
+
+/* ======================================================
+   LOGIN / LOGOUT
+====================================================== */
+async function login(){
+    const email = document.getElementById("email").value;
+    const pass  = document.getElementById("password").value;
+
+    try{
+        // tenta login
+        const res = await auth.signInWithEmailAndPassword(email, pass);
+    }catch(e){
+        // se não existe, registra
+        await auth.createUserWithEmailAndPassword(email, pass);
+    }
 }
 
-function carregarTickets() {
-  const container = document.getElementById('ticketsList');
-  container.innerHTML = '';
-  tickets.forEach(t => {
-    const div = document.createElement('div');
-    div.innerHTML = `
-      <p><b>ID:</b> ${t.id} | <b>Status:</b> ${t.status}</p>
-      <p><b>Email:</b> ${t.email}</p>
-      <p><b>Mensagem:</b> ${t.message}</p>
-      ${t.status === 'fechado' ?   
-        `<p><b>Avaliação:</b> ${t.avaliacao || '-'}</p>
-         <button onclick="avaliarTicket(${t.id})">Avaliar</button>` 
-        : `
-         <button onclick="mudarStatus(${t.id}, 'aberto')">Abrir</button>
-         <button onclick="mudarStatus(${t.id}, 'fechado')">Fechar</button>`
-      }
-    `;
-    container.appendChild(div);
-  });
+function logout(){
+    auth.signOut();
 }
 
-function criarTicket() {
-  const message = document.getElementById('message').value.trim();
-  if (!message) { alert('Digite uma mensagem para o ticket.'); return; }
-  fetch('/ticket/create', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: userEmail, message }),
-  })
-  .then(res => res.json())
-  .then(ticket => {
-    tickets.push(ticket);
-    carregarTickets();
-    document.getElementById('message').value = '';
-  });
+
+/* ======================================================
+   VERIFICA LOGIN
+====================================================== */
+auth.onAuthStateChanged(user=>{
+    if(user){
+        currentUser = user;
+        document.getElementById("loginArea").style.display = "none";
+        document.getElementById("appArea").style.display = "block";
+        document.getElementById("userInfo").innerHTML =
+`<p>Logado como <b>srleal018@gmail.com</b> — (STAFF AUTOMÁTICO)</p>`;
+loadTickets();
+
+    } else {
+        currentUser = null;
+        document.getElementById("loginArea").style.display = "block";
+        document.getElementById("appArea").style.display = "none";
+    }
+});
+
+
+/* ======================================================
+   CRIAR TICKET
+====================================================== */
+async function createTicket(){
+    const s = document.getElementById("subject").value;
+    const m = document.getElementById("message").value;
+
+    if(!s || !m){
+        alert("Preencha tudo!");
+        return;
+    }
+
+    await db.collection("tickets").add({
+        user: currentUser.email,
+        subject: s,
+        message: m,
+        status: "aberto",
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    document.getElementById("subject").value = "";
+    document.getElementById("message").value = "";
 }
 
-function mudarStatus(id, status) {
-  fetch('/ticket/status', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id, status }),
-  })
-  .then(res => res.json())
-  .then(ticket => {
-    const idx = tickets.findIndex(t => t.id === ticket.id);
-    if(idx > -1) tickets[idx] = ticket;
-    carregarTickets();
-  });
+
+/* ======================================================
+   LISTAR TICKETS
+====================================================== */
+function loadTickets(){
+    db.collection("tickets")
+      .orderBy("createdAt","desc")
+      .onSnapshot(snap=>{
+        
+        const box = document.getElementById("ticketList");
+        box.innerHTML = "";
+
+        snap.forEach(doc=>{
+            const data = doc.data();
+            const id = doc.id;
+
+            const div = document.createElement("div");
+            div.className = "ticket";
+            div.innerHTML = `
+                <b>👤 Usuário:</b> ${data.user}<br>
+                <b>📌 Assunto:</b> ${data.subject}<br>
+                <b>🗒 Mensagem:</b> ${data.message}<br>
+                <b>📍 Status:</b> ${data.status}<br>
+                <br>
+                <textarea id="reply_${id}" placeholder="Responder..." rows="2"></textarea>
+                <button class="btnSmall" onclick="sendReply('${id}')">Responder</button>
+                <button class="btnSmall" onclick="closeTicket('${id}')">Fechar Ticket</button>
+
+                <div id="replies_${id}"></div>
+            `;
+
+            box.appendChild(div);
+
+            loadReplies(id);
+        });
+    });
 }
 
-function avaliarTicket(id) {
-  const avaliacao = prompt('Avalie este ticket de 1 a 5:');
-  if (!avaliacao) return;
-  fetch('/ticket/avaliar', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id, avaliacao }),
-  })
-  .then(res => res.json())
-  .then(resp => {
-    const idx = tickets.findIndex(t => t.id === id);
-    if(idx > -1) tickets[idx] = resp.ticket;
-    carregarTickets();
-    alert('Avaliação enviada com sucesso!');
- const express = require('express');
-const bodyParser = require('body-parser');
-const app = express();
-app.use(express.static('public'));
-app.use(bodyParser.json());
 
-const STAFF_EMAIL = 'srleal018@gmail.com';
-let tickets = [];
+/* ======================================================
+   LISTAR RESPOSTAS DE CADA TICKET
+====================================================== */
+function loadReplies(ticketId){
+    db.collection("tickets")
+      .doc(ticketId)
+      .collection("replies")
+      .orderBy("createdAt")
+      .onSnapshot(snap=>{
+          const box = document.getElementById("replies_"+ticketId);
+          box.innerHTML = `<br><b>Respostas:</b><br>`;
 
-app.post('/login', (req, res) => {
-  const { email } = req.body;
-  const isStaff = email === STAFF_EMAIL;
-  res.json({ email, isStaff });
-});
+          snap.forEach(r=>{
+              const d = r.data();
+              box.innerHTML += `
+                 <div class="reply">
+                    <b>${d.author}:</b><br>${d.message}
+                 </div>
+              `;
+          });
+      });
+}
 
-app.post('/ticket/create', (req, res) => {
-  const { email, message } = req.body;
-  const ticket = {
-    id: tickets.length + 1,
-    email,
-    message,
-    status: 'aberto',
-    avaliacao: null
-  };
-  tickets.push(ticket);
-  res.json(ticket);
-});
 
-app.post('/ticket/status', (req, res) => {
-  const { id, status } = req.body;
-  const ticket = tickets.find(t => t.id === id);
-  if (!ticket) return res.status(404).json({ error: 'Ticket não encontrado' });
-  ticket.status = status;
-  res.json(ticket);
-});
+/* ======================================================
+   RESPONDER TICKET
+====================================================== */
+async function sendReply(ticketId){
+    const text = document.getElementById("reply_"+ticketId).value;
+    if(!text) return;
 
-app.post('/ticket/avaliar', (req, res) => {
-  const { id, avaliacao } = req.body;
-  const ticket = tickets.find(t => t.id === id);
-  if (!ticket) return res.status(404).json({ error: 'Ticket não encontrado' });
-  ticket.avaliacao = avaliacao;
-  // Aqui você pode enviar avaliação para outra rota ou armazenar em banco
-  res.json({ success: true, ticket });
-});
+    await db.collection("tickets")
+            .doc(ticketId)
+            .collection("replies")
+            .add({
+                author: currentUser.email,
+                message: text,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
 
-app.listen(3000, () => console.log('Servidor rodando na porta 3000'));
+    document.getElementById("reply_"+ticketId).value = "";
+}
 
-  });
+
+/* ======================================================
+   FECHAR TICKET
+====================================================== */
+async function closeTicket(ticketId){
+    await db.collection("tickets")
+            .doc(ticketId)
+            .update({
+                status:"fechado"
+            });
 }
 </script>
 
 </body>
 </html>
+
 
 </body>
 </html>
